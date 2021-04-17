@@ -31,13 +31,15 @@ input UserInput {
 type Mutation {
   createUser(input: UserInput): User
   updateUser(_id: ID!, input: UserInput): String
-} 
+}
 
 type Query {
   UserByID(_id: ID!): User
   GetAllUsers: [User]
 }
 `);
+
+
 
 
 var db = {}
@@ -62,20 +64,33 @@ var root = {
   }
 };
 
-app.use((req, res, next) => {
-  next()
-})
+
+const auth = (req, res, next) => {
+  const { token } = req.headers;
+  if(!token) {
+    return res.status(401).send({status: 'Failed', message: 'Authentication Failed'})
+  }
+
+  let tkn = token.split(' ');
+  if(tkn[0] != 'bearer' || tkn[1] !== "123456") {
+      return res.status(401).send({status: 'Failed', message: 'Authentication Failed'})
+  }
+
+  next();
+
+  
+}
 
 Student.watch().on('change', data => console.log('change stream', data))
 Student.watch().on('error', data => console.log('error', data))
 
-app.use('/', graphqlHTTP({
-    schema: schema,
-    rootValue: root,
-    graphiql: true,
-}));
+// app.use('/', graphqlHTTP({
+//     schema: schema,
+//     rootValue: root,
+//     graphiql: true,
+// }));
 
-app.get('/', async (req, res) => {
+app.get('/', auth, async (req, res) => {
   console.log(req.headers.xkey)
   var result = 'something went wrong!';
   try {
@@ -108,6 +123,40 @@ app.get('/', async (req, res) => {
   catch(error) {
     result = error.message;
   }
+  res.send(result)
+})
+
+app.post('/', async (req, res) => {
+  // var result = await Employees.find({}).select({ _id: 0, 'department.departmentName': 1, salary: 1 })
+  var result = await Employees.aggregate([
+    {
+      $project: {
+        _id: 0,
+        name: 1,
+        salary: 1,
+        'departmentName': 'department.departmentName',
+        'grade.grade': 1,
+        'grade.year': 1,
+      }
+    },
+    {
+      $sort: {
+        name: 1
+      }
+    }
+  ])
+  res.send(result)
+})
+
+app.post('/test', async (req, res) => {
+  var result = await Employees.find().select({
+    _id: 0,
+    name: 1,
+    salary: 1,
+    'grade.grade': 1,
+    'grade.year': 1,
+    'departmentName': '$department.departmentName',
+  })
   res.send(result)
 })
 
