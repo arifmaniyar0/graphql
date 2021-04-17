@@ -84,11 +84,11 @@ const auth = (req, res, next) => {
 Student.watch().on('change', data => console.log('change stream', data))
 Student.watch().on('error', data => console.log('error', data))
 
-// app.use('/', graphqlHTTP({
-//     schema: schema,
-//     rootValue: root,
-//     graphiql: true,
-// }));
+app.use('/', graphqlHTTP({
+    schema: schema,
+    rootValue: root,
+    graphiql: true,
+}));
 
 app.get('/', auth, async (req, res) => {
   console.log(req.headers.xkey)
